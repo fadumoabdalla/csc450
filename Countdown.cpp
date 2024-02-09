@@ -5,6 +5,8 @@
 
 std::mutex mtx;  
 std::condition_variable cv;  
+bool ready = false;
+
 void CountUp() {
     for (int i = 1; i <= 20; ++i) {
         std::unique_lock<std::mutex> lock(mtx);
@@ -18,7 +20,7 @@ void CountUp() {
 }
 
 void CountDown() {
-    for (int i = 20; i >= 0; --i) {
+    for (int i = 20; i > 0; --i) {
         std::unique_lock<std::mutex> lock(mtx);
         while (ready) {
             cv.wait(lock);
@@ -32,6 +34,12 @@ void CountDown() {
 int main() {
     std::thread t1(CountUp);
     std::thread t2(CountDown);
+
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        ready = true;
+        cv.notify_all();
+    }
 
     t1.join();
     t2.join();
